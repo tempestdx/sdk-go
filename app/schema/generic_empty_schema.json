@@ -1,0 +1,9 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://schema.tempestdx.io/sdk/generic_empty_schema.json",
+    "$comment": "This is a generic empty schema that can be used as a placeholder for schemas that are still in development.",
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": true
+}

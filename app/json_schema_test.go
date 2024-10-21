@@ -1,0 +1,249 @@
+package app
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+var (
+	invalidSchema = []byte(`{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id":
+}`)
+
+	emptySchema = []byte(`{}`)
+
+	schemaWithDefaults = []byte(`{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"properties": {
+		"property1": {
+			"type": "string",
+			"default": "default1"
+		},
+		"property2": {
+			"type": "string"
+		}
+	},
+	"required": ["property1"]
+}`)
+)
+
+func TestParseJSONSchema(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		schema   []byte
+		expected *JSONSchema
+		err      error
+	}{
+		{
+			desc:   "OK - Empty JSON Schema",
+			schema: emptySchema,
+			expected: &JSONSchema{
+				Schema: &jsonschema.Schema{
+					Draft: jsonschema.Draft2020,
+				},
+				raw: []byte(`{}`),
+			},
+		},
+		{
+			desc:   "OK - Generic Empty Schema",
+			schema: GenericEmptySchema,
+			expected: &JSONSchema{
+				Schema: &jsonschema.Schema{
+					Draft:                jsonschema.Draft7,
+					Properties:           map[string]*jsonschema.Schema{},
+					AdditionalProperties: true,
+					Required:             []string{},
+				},
+				raw: GenericEmptySchema,
+			},
+		},
+		{
+			desc:   "ERR - empty schema",
+			schema: []byte{},
+			err:    errors.New("schema is empty"),
+		},
+		{
+			desc: "ERR - nil schema",
+			err:  errors.New("schema is empty"),
+		},
+		{
+			desc:   "ERR - invalid schema",
+			schema: invalidSchema,
+			err:    errors.New("load schema: jsonschema: invalid json : invalid character '}' looking for beginning of value"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			out, err := ParseJSONSchema(tc.schema)
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected.Schema.Draft, out.Draft)
+			assert.Equal(t, tc.expected.Schema.Properties, out.Properties)
+			assert.Equal(t, tc.expected.AdditionalProperties, out.AdditionalProperties)
+			assert.Equal(t, tc.expected.Required, out.Required)
+
+			assert.Equal(t, tc.expected.raw, out.raw)
+		})
+	}
+}
+
+func TestMustParseJSONSchema(t *testing.T) {
+	testCases := []struct {
+		desc        string
+		schema      []byte
+		shouldPanic bool
+	}{
+		{
+			desc:   "OK - No panic",
+			schema: []byte(`{}`),
+		},
+		{
+			desc:        "PANIC - empty schema",
+			shouldPanic: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			if tc.shouldPanic {
+				require.Panics(t, func() {
+					MustParseJSONSchema(tc.schema)
+				})
+				return
+			}
+
+			assert.NotNil(t, MustParseJSONSchema(tc.schema))
+		})
+	}
+}
+
+func TestJSONSchemaToStruct(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		schema *JSONSchema
+		spb    *structpb.Struct
+		err    error
+	}{
+		{
+			desc:   "OK - Empty JSON Schema",
+			schema: MustParseJSONSchema(emptySchema),
+			spb: &structpb.Struct{
+				Fields: map[string]*structpb.Value{},
+			},
+		},
+		{
+			desc:   "OK - Generic Empty Schema",
+			schema: MustParseJSONSchema(GenericEmptySchema),
+			spb: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"$comment": {Kind: &structpb.Value_StringValue{
+						StringValue: "This is a generic empty schema that can be used as a placeholder for schemas that are still in development.",
+					}},
+					"$id": {Kind: &structpb.Value_StringValue{
+						StringValue: "https://schema.tempestdx.io/sdk/generic_empty_schema.json",
+					}},
+					"$schema": {Kind: &structpb.Value_StringValue{
+						StringValue: "http://json-schema.org/draft-07/schema#",
+					}},
+					"additionalProperties": {Kind: &structpb.Value_BoolValue{
+						BoolValue: true,
+					}},
+					"properties": {Kind: &structpb.Value_StructValue{
+						StructValue: &structpb.Struct{
+							Fields: map[string]*structpb.Value{},
+						},
+					}},
+					"required": {Kind: &structpb.Value_ListValue{
+						ListValue: &structpb.ListValue{
+							Values: []*structpb.Value{},
+						},
+					}},
+					"type": {Kind: &structpb.Value_StringValue{
+						StringValue: "object",
+					}},
+				},
+			},
+		},
+		{
+			desc: "OK - Empty Raw",
+			schema: &JSONSchema{
+				Schema: &jsonschema.Schema{
+					Draft: jsonschema.Draft2020,
+				},
+				raw: nil,
+			},
+			spb: &structpb.Struct{
+				Fields: map[string]*structpb.Value{},
+			},
+		},
+		{
+			desc: "ERR - Unmarshal",
+			schema: &JSONSchema{
+				Schema: &jsonschema.Schema{
+					Draft: jsonschema.Draft2020,
+				},
+				raw: invalidSchema,
+			},
+			err: errors.New("unmarshal schema: invalid character '}' looking for beginning of value"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			spb, err := tc.schema.toStruct()
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.spb, spb)
+		})
+	}
+}
+
+func TestInjectDefaults(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		input  map[string]any
+		output map[string]any
+	}{
+		{
+			desc: "Inject Defaults",
+			input: map[string]any{
+				"property2": "test",
+			},
+			output: map[string]any{
+				"property1": "default1",
+				"property2": "test",
+			},
+		},
+		{
+			desc: "Don't Inject Defaults - Already Set",
+			input: map[string]any{
+				"property1": "test",
+				"property2": "test",
+			},
+			output: map[string]any{
+				"property1": "test",
+				"property2": "test",
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			schema := MustParseJSONSchema(schemaWithDefaults)
+			schema.injectDefaults(tc.input)
+
+			assert.Equal(t, tc.output, tc.input)
+		})
+	}
+}
