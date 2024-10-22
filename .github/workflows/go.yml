@@ -1,0 +1,24 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  go-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+    - name: Test
+      run: go test -v -race ./...
+    - name: Check Go generate
+      run: set -ue; go generate ./...; git diff --quiet || { echo "run 'go generate ./...'"; exit 1; }
