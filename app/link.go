@@ -22,7 +22,7 @@ type Link struct {
 
 func (l *Link) toProto() *appv1.Link {
 	if l == nil {
-		return &appv1.Link{}
+		return nil
 	}
 
 	return &appv1.Link{
@@ -34,7 +34,7 @@ func (l *Link) toProto() *appv1.Link {
 
 func linkFromProto(l *appv1.Link) *Link {
 	if l == nil {
-		return &Link{}
+		return nil
 	}
 
 	return &Link{

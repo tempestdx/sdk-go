@@ -17,7 +17,6 @@ func TestOperationRequestFromProto(t *testing.T) {
 		{
 			desc: "OK",
 			opReq: &OperationRequest{
-				Metadata: &Metadata{},
 				Resource: &Resource{
 					ExternalID:  "external-id",
 					DisplayName: "display-name",
@@ -41,11 +40,8 @@ func TestOperationRequestFromProto(t *testing.T) {
 			},
 		},
 		{
-			desc: "OK - nil",
-			opReq: &OperationRequest{
-				Metadata: &Metadata{},
-				Resource: &Resource{},
-			},
+			desc:    "OK - nil",
+			opReq:   nil,
 			opReqpb: nil,
 		},
 	}

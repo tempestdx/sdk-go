@@ -23,7 +23,7 @@ type Resource struct {
 
 func (r *Resource) toProto() (*appv1.Resource, error) {
 	if r == nil {
-		return &appv1.Resource{}, nil
+		return nil, fmt.Errorf("resource is nil")
 	}
 
 	links := make([]*appv1.Link, 0, len(r.Links))
@@ -47,7 +47,7 @@ func (r *Resource) toProto() (*appv1.Resource, error) {
 
 func resourceFromProto(r *appv1.Resource) *Resource {
 	if r == nil {
-		return &Resource{}
+		return nil
 	}
 
 	links := make([]*Link, 0, len(r.Links))

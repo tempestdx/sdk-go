@@ -18,6 +18,10 @@ type ListRequest struct {
 }
 
 func listRequestFromProto(r *appv1.ListResourcesRequest) *ListRequest {
+	if r == nil {
+		return nil
+	}
+
 	return &ListRequest{
 		Metadata: metadataFromProto(r.Metadata),
 		Resource: resourceFromProto(r.Resource),
@@ -33,8 +37,8 @@ type ListResponse struct {
 }
 
 type listOperation struct {
-	schema  schema
-	handler ListFunc
+	schema schema
+	fn     ListFunc
 }
 
 type ListFunc func(context.Context, *ListRequest) (*ListResponse, error)

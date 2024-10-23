@@ -29,7 +29,7 @@ func TestLinkToProto(t *testing.T) {
 		{
 			desc:   "OK - nil",
 			link:   nil,
-			linkpb: &appv1.Link{},
+			linkpb: nil,
 		},
 	}
 	for _, tc := range testCases {
@@ -61,7 +61,7 @@ func TestLinkFromProto(t *testing.T) {
 		{
 			desc:   "OK - nil",
 			linkpb: nil,
-			link:   &Link{},
+			link:   nil,
 		},
 	}
 	for _, tc := range testCases {

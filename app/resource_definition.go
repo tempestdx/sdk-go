@@ -1,7 +1,5 @@
 package app
 
-import "fmt"
-
 // getResourceDefinition returns the ResourceDefinition with the given type, if it exists.
 func (a *App) getResourceDefinition(t string) (*ResourceDefinition, bool) {
 	for _, rd := range a.resourceDefinitions {
@@ -65,7 +63,7 @@ func (rd *ResourceDefinition) CreateFn(fn OperationFunc, inputSchema *JSONSchema
 	}
 
 	if fn == nil {
-		panic("OperationHandler must be set for a Create Operation")
+		panic("OperationFunc must be set for a Create Operation")
 	}
 
 	rd.create = &operation{
@@ -92,7 +90,7 @@ func (rd *ResourceDefinition) UpdateFn(fn OperationFunc, inputSchema *JSONSchema
 	}
 
 	if fn == nil {
-		panic("OperationHandler must be set for an Update Operation")
+		panic("OperationFunc must be set for an Update Operation")
 	}
 
 	rd.update = &operation{
@@ -109,10 +107,18 @@ func (rd *ResourceDefinition) UpdateFn(fn OperationFunc, inputSchema *JSONSchema
 // The Handler should delete the resource in the external system.
 // See the Delete operation in the Printer example for an example implementation.
 func (rd *ResourceDefinition) DeleteFn(fn OperationFunc) {
+	if rd.PropertiesSchema == nil {
+		panic("Properties must be set before adding a Delete handler")
+	}
+
+	if fn == nil {
+		panic("OperationFunc must be set for a Delete Operation")
+	}
+
 	rd.delete = &operation{
 		schema: schema{
 			input:  MustParseJSONSchema(GenericEmptySchema),
-			output: MustParseJSONSchema(GenericEmptySchema),
+			output: rd.PropertiesSchema,
 		},
 		fn: fn,
 	}
@@ -125,6 +131,10 @@ func (rd *ResourceDefinition) DeleteFn(fn OperationFunc) {
 func (rd *ResourceDefinition) ReadFn(fn OperationFunc) {
 	if rd.PropertiesSchema == nil {
 		panic("Properties must be set before adding a Read handler")
+	}
+
+	if fn == nil {
+		panic("OperationFunc must be set for a Read Operation")
 	}
 
 	rd.read = &operation{
@@ -146,12 +156,16 @@ func (rd *ResourceDefinition) ListFn(fn ListFunc) {
 		panic("Properties must be set before adding a List handler")
 	}
 
+	if fn == nil {
+		panic("ListFunc must be set for a List Operation")
+	}
+
 	rd.list = &listOperation{
 		schema: schema{
 			input:  MustParseJSONSchema(GenericEmptySchema),
 			output: rd.PropertiesSchema,
 		},
-		handler: fn,
+		fn: fn,
 	}
 }
 
@@ -159,23 +173,9 @@ func (rd *ResourceDefinition) ListFn(fn ListFunc) {
 //
 // The Handler should return the provisioning health of the resource.
 func (rd *ResourceDefinition) HealthCheckFn(fn HealthCheckFunc) {
+	if fn == nil {
+		panic("HealthCheckFunc must be set for a HealthCheck Operation")
+	}
+
 	rd.healthcheck = fn
-}
-
-func (rd *ResourceDefinition) AddActionDefinition(ad ActionDefinition) {
-	for _, existing := range rd.actions {
-		if existing.Name == ad.Name {
-			panic(fmt.Sprintf("ActionDefinition with the same name '%s' already exists", ad.Name))
-		}
-	}
-
-	if ad.InputSchema == nil {
-		ad.InputSchema = MustParseJSONSchema(GenericEmptySchema)
-	}
-
-	if ad.OutputSchema == nil {
-		ad.OutputSchema = MustParseJSONSchema(GenericEmptySchema)
-	}
-
-	rd.actions = append(rd.actions, ad)
 }

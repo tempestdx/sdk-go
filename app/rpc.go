@@ -153,6 +153,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
 		}
 
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for update operation"))
+		}
+
 		// Inject default values from the Schema into the input, then validate the input.
 		op.schema.input.injectDefaults(opReq.Input)
 		if err := op.schema.input.Validate(opReq.Input); err != nil {
@@ -166,7 +170,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 
 		// Catch any validation errors before returning the resource.
 		if err := op.schema.output.Validate(res.Resource.Properties); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate create output: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate update output: %w", err))
 		}
 
 		resource, err := res.Resource.toProto()
@@ -181,6 +185,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 		op := operationForType(rd, o)
 		if op == nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
+		}
+
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for delete operation"))
 		}
 
 		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
@@ -203,6 +211,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
 		}
 
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for read operation"))
+		}
+
 		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read resource: %w", err))
@@ -210,7 +222,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 
 		// Catch any validation errors before returning the resource.
 		if err := op.schema.output.Validate(res.Resource.Properties); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate create output: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate read output: %w", err))
 		}
 
 		resource, err := res.Resource.toProto()
@@ -222,7 +234,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			Resource: resource,
 		}), nil
 	default:
-		return nil, fmt.Errorf("unsupported operation %s", req.Msg.Operation.String())
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported operation %s", o.String()))
 	}
 }
 
@@ -240,14 +252,14 @@ func (a *App) ListResources(ctx context.Context, req *connect.Request[appv1.List
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("list operation not supported for resource type %s", req.Msg.Resource.Type))
 	}
 
-	res, err := rd.list.handler(ctx, listRequestFromProto(req.Msg))
+	res, err := rd.list.fn(ctx, listRequestFromProto(req.Msg))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list resources: %w", err))
 	}
 
 	// Validate each resource before returning them.
 	for _, r := range res.Resources {
-		if err := rd.PropertiesSchema.Validate(r.Properties); err != nil {
+		if err := rd.list.schema.output.Validate(r.Properties); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate resource properties: %w", err))
 		}
 	}

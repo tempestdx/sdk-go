@@ -17,7 +17,7 @@ type Metadata struct {
 
 func metadataFromProto(m *appv1.Metadata) *Metadata {
 	if m == nil {
-		return &Metadata{}
+		return nil
 	}
 
 	owners := make([]Owner, 0, len(m.Owners))
