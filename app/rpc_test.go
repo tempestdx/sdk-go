@@ -257,6 +257,10 @@ func TestExecuteResourceOperation_Create(t *testing.T) {
 
 			if tc.enableCreate {
 				rd.CreateFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					if tc.createErr != nil {
+						return nil, tc.createErr
+					}
+
 					return &OperationResponse{
 						Resource: &Resource{
 							ExternalID:  "example-1",
@@ -274,7 +278,7 @@ func TestExecuteResourceOperation_Create(t *testing.T) {
 								},
 							},
 						},
-					}, tc.createErr
+					}, nil
 				}, tc.inputSchema)
 			}
 
@@ -420,6 +424,10 @@ func TestExecuteResourceOperation_Update(t *testing.T) {
 
 			if tc.enableUpdate {
 				rd.UpdateFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					if tc.updateErr != nil {
+						return nil, tc.updateErr
+					}
+
 					return &OperationResponse{
 						Resource: &Resource{
 							ExternalID:  "example-1",
@@ -437,7 +445,7 @@ func TestExecuteResourceOperation_Update(t *testing.T) {
 								},
 							},
 						},
-					}, tc.updateErr
+					}, nil
 				}, tc.inputSchema)
 			}
 
@@ -478,9 +486,6 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
 			},
 			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
@@ -509,12 +514,20 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
 			},
 			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_DELETE not supported for resource type example"),
+		},
+		{
+			desc:         "ERR - No External ID",
+			enableDelete: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
+			},
+			err: fmt.Errorf("invalid_argument: external ID is required for delete operation"),
 		},
 		{
 			desc:         "ERR - Delete Error",
@@ -524,9 +537,6 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
 			},
 			deleteErr: fmt.Errorf("delete error"),
@@ -538,6 +548,10 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 			rd := generateRD(nil)
 			if tc.enableDelete {
 				rd.DeleteFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					if tc.deleteErr != nil {
+						return nil, tc.deleteErr
+					}
+
 					return &OperationResponse{
 						Resource: &Resource{
 							ExternalID:  "example-1",
@@ -555,7 +569,7 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 								},
 							},
 						},
-					}, tc.deleteErr
+					}, nil
 				})
 			}
 
@@ -595,9 +609,6 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
 			},
 			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
@@ -626,12 +637,20 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
 			},
 			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_READ not supported for resource type example"),
+		},
+		{
+			desc:       "ERR - No External ID",
+			enableRead: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
+			},
+			err: fmt.Errorf("invalid_argument: external ID is required for read operation"),
 		},
 		{
 			desc:       "ERR - Read Error",
@@ -641,9 +660,6 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
 			},
 			readErr: fmt.Errorf("read error"),
@@ -658,9 +674,6 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 					Type:       "example",
 					ExternalId: "example-1",
 				},
-				Input: mustNewStruct(map[string]any{
-					"key": "value",
-				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
 			},
 			err: fmt.Errorf("internal: validate read output: jsonschema: '' does not validate"),
@@ -675,6 +688,10 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 
 			if tc.enableRead {
 				rd.ReadFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					if tc.readErr != nil {
+						return nil, tc.readErr
+					}
+
 					return &OperationResponse{
 						Resource: &Resource{
 							ExternalID:  "example-1",
@@ -692,7 +709,7 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 								},
 							},
 						},
-					}, tc.readErr
+					}, nil
 				})
 			}
 
@@ -701,6 +718,202 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 			}
 
 			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tc.req))
+			if tc.err != nil {
+				if tc.desc == "ERR - Invalid Output" {
+					assert.ErrorContains(t, err, tc.err.Error())
+				} else {
+					assert.EqualError(t, err, tc.err.Error())
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
+func TestListResources(t *testing.T) {
+	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+
+	testCases := []struct {
+		desc             string
+		numResources     int
+		want             *connect.Response[appv1.ListResourcesResponse]
+		req              *appv1.ListResourcesRequest
+		propertiesSchema *JSONSchema
+		enableList       bool
+		listErr          error
+		err              error
+	}{
+		{
+			desc:         "OK - Single Resource",
+			enableList:   true,
+			numResources: 1,
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Next: "1",
+			},
+			want: connect.NewResponse(&appv1.ListResourcesResponse{
+				Resources: []*appv1.Resource{
+					{
+						Type:        "example",
+						ExternalId:  "example-1",
+						DisplayName: "Example",
+						Properties: mustNewStruct(map[string]any{
+							"key":       "value",
+							"other_key": "other_value",
+						}),
+						Links: []*appv1.Link{
+							{
+								Url:   "http://example.com",
+								Title: "Example",
+								Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+							},
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc:         "OK - Multiple Resources",
+			enableList:   true,
+			numResources: 2,
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Next: "1",
+			},
+			want: connect.NewResponse(&appv1.ListResourcesResponse{
+				Resources: []*appv1.Resource{
+					{
+						Type:        "example",
+						ExternalId:  "example-1",
+						DisplayName: "Example",
+						Properties: mustNewStruct(map[string]any{
+							"key":       "value",
+							"other_key": "other_value",
+						}),
+						Links: []*appv1.Link{
+							{
+								Url:   "http://example.com",
+								Title: "Example",
+								Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+							},
+						},
+					},
+					{
+						Type:        "example",
+						ExternalId:  "example-2",
+						DisplayName: "Example",
+						Properties: mustNewStruct(map[string]any{
+							"key":       "value",
+							"other_key": "other_value",
+						}),
+						Links: []*appv1.Link{
+							{
+								Url:   "http://example.com",
+								Title: "Example",
+								Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+							},
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc: "ERR - List Disabled",
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Next: "1",
+			},
+			err: fmt.Errorf("invalid_argument: list operation not supported for resource type example"),
+		},
+		{
+			desc:       "ERR - List Error",
+			enableList: true,
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Next: "1",
+			},
+			listErr: fmt.Errorf("list error"),
+			err:     fmt.Errorf("internal: list resources: list error"),
+		},
+		{
+			desc:             "ERR - Invalid Output",
+			enableList:       true,
+			numResources:     2,
+			propertiesSchema: parsedSimpleSchema,
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Next: "1",
+			},
+			err: fmt.Errorf("internal: validate resource properties: jsonschema: '' does not validate"),
+		},
+		{
+			desc: "ERR - Resource Missing",
+			req: &appv1.ListResourcesRequest{
+				Resource: &appv1.Resource{
+					Type: "not_found",
+				},
+				Next: "1",
+			},
+			err: fmt.Errorf("not_found: resource type not_found not found"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			if tc.propertiesSchema != nil {
+				rd.PropertiesSchema = tc.propertiesSchema
+			}
+
+			if tc.enableList {
+				rd.ListFn(func(_ context.Context, req *ListRequest) (*ListResponse, error) {
+					if tc.listErr != nil {
+						return nil, tc.listErr
+					}
+
+					var resources []*Resource
+					for i := 0; i < tc.numResources; i++ {
+						resources = append(resources, &Resource{
+							ExternalID:  fmt.Sprintf("example-%d", i+1),
+							DisplayName: "Example",
+							Type:        "example",
+							Properties: map[string]any{
+								"key":       "value",
+								"other_key": "other_value",
+							},
+							Links: []*Link{
+								{
+									URL:   "http://example.com",
+									Title: "Example",
+									Type:  LinkTypeDocumentation,
+								},
+							},
+						})
+					}
+
+					return &ListResponse{
+						Resources: resources,
+					}, nil
+				})
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.ListResources(context.Background(), connect.NewRequest(tc.req))
 			if tc.err != nil {
 				if tc.desc == "ERR - Invalid Output" {
 					assert.ErrorContains(t, err, tc.err.Error())

@@ -153,6 +153,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
 		}
 
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for update operation"))
+		}
+
 		// Inject default values from the Schema into the input, then validate the input.
 		op.schema.input.injectDefaults(opReq.Input)
 		if err := op.schema.input.Validate(opReq.Input); err != nil {
@@ -183,6 +187,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
 		}
 
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for delete operation"))
+		}
+
 		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete resource: %w", err))
@@ -201,6 +209,10 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 		op := operationForType(rd, o)
 		if op == nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("operation %s not supported for resource type %s", o.String(), req.Msg.Resource.Type))
+		}
+
+		if req.Msg.Resource.ExternalId == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for read operation"))
 		}
 
 		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
@@ -247,7 +259,7 @@ func (a *App) ListResources(ctx context.Context, req *connect.Request[appv1.List
 
 	// Validate each resource before returning them.
 	for _, r := range res.Resources {
-		if err := rd.PropertiesSchema.Validate(r.Properties); err != nil {
+		if err := rd.list.schema.output.Validate(r.Properties); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate resource properties: %w", err))
 		}
 	}
