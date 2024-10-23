@@ -240,7 +240,7 @@ func (a *App) ListResources(ctx context.Context, req *connect.Request[appv1.List
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("list operation not supported for resource type %s", req.Msg.Resource.Type))
 	}
 
-	res, err := rd.list.handler(ctx, listRequestFromProto(req.Msg))
+	res, err := rd.list.fn(ctx, listRequestFromProto(req.Msg))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list resources: %w", err))
 	}

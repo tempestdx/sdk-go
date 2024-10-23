@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	appv1 "github.com/tempestdx/protobuf/gen/go/tempestdx/app/v1"
 )
@@ -18,6 +19,24 @@ func (a *App) getActionDefinition(resource, action string) (*ActionDefinition, b
 		}
 	}
 	return nil, false
+}
+
+func (rd *ResourceDefinition) AddActionDefinition(ad ActionDefinition) {
+	for _, existing := range rd.actions {
+		if existing.Name == ad.Name {
+			panic(fmt.Sprintf("ActionDefinition with the same name '%s' already exists", ad.Name))
+		}
+	}
+
+	if ad.InputSchema == nil {
+		ad.InputSchema = MustParseJSONSchema(GenericEmptySchema)
+	}
+
+	if ad.OutputSchema == nil {
+		ad.OutputSchema = MustParseJSONSchema(GenericEmptySchema)
+	}
+
+	rd.actions = append(rd.actions, ad)
 }
 
 type ActionDefinition struct {

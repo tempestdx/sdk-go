@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func TestResourceFromProto(t *testing.T) {
 		},
 		{
 			desc:       "OK - nil",
-			resource:   &Resource{},
+			resource:   nil,
 			resourcepb: nil,
 		},
 	}
@@ -95,9 +96,10 @@ func TestResourceToProto(t *testing.T) {
 			},
 		},
 		{
-			desc:       "OK - nil",
+			desc:       "ERR - nil",
 			resource:   nil,
-			resourcepb: &appv1.Resource{},
+			resourcepb: nil,
+			err:        fmt.Errorf("resource is nil"),
 		},
 	}
 	for _, tc := range testCases {

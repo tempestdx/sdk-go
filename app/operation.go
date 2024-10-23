@@ -21,10 +21,7 @@ type OperationRequest struct {
 
 func operationRequestFromProto(r *appv1.ExecuteResourceOperationRequest) *OperationRequest {
 	if r == nil {
-		return &OperationRequest{
-			Metadata: &Metadata{},
-			Resource: &Resource{},
-		}
+		return nil
 	}
 
 	return &OperationRequest{

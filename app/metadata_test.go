@@ -108,7 +108,7 @@ func TestMetadataFromProto(t *testing.T) {
 		},
 		{
 			desc: "OK - nil",
-			md:   &Metadata{},
+			md:   nil,
 			mdpb: nil,
 		},
 	}
