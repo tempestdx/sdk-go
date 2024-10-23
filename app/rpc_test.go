@@ -80,6 +80,642 @@ func TestDescribe(t *testing.T) {
 	}
 }
 
+func TestExecuteResourceOperationErrors(t *testing.T) {
+	testCases := []struct {
+		desc string
+		req  *appv1.ExecuteResourceOperationRequest
+		err  error
+	}{
+		{
+			desc: "ERR - nil resource",
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: nil,
+			},
+			err: fmt.Errorf("invalid_argument: resource is required"),
+		},
+		{
+			desc: "ERR - type not found",
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "not_found",
+				},
+			},
+			err: fmt.Errorf("not_found: resource type not_found not found"),
+		},
+		{
+			desc: "ERR - invalid operation",
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UNSPECIFIED,
+			},
+			err: fmt.Errorf("invalid_argument: unsupported operation RESOURCE_OPERATION_UNSPECIFIED"),
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{generateRD(nil)},
+			}
+
+			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tC.req))
+			assert.EqualError(t, err, tC.err.Error())
+			assert.Nil(t, res)
+		})
+	}
+}
+
+var simpleSchema = []byte(`{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"properties": {
+		"property1": {
+			"type": "string",
+			"default": "default1"
+		},
+		"property2": {
+			"type": "string"
+		}
+	},
+	"required": ["property1", "property2"]
+}`)
+
+func TestExecuteResourceOperation_Create(t *testing.T) {
+	parsedSchema := MustParseJSONSchema(GenericEmptySchema)
+	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+
+	testCases := []struct {
+		desc             string
+		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
+		req              *appv1.ExecuteResourceOperationRequest
+		inputSchema      *JSONSchema
+		propertiesSchema *JSONSchema
+		enableCreate     bool
+		createErr        error
+		err              error
+	}{
+		{
+			desc:         "OK",
+			enableCreate: true,
+			inputSchema:  parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
+			},
+			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
+				Resource: &appv1.Resource{
+					Type:        "example",
+					ExternalId:  "example-1",
+					DisplayName: "Example",
+					Properties: mustNewStruct(map[string]any{
+						"key":       "value",
+						"other_key": "other_value",
+					}),
+					Links: []*appv1.Link{
+						{
+							Url:   "http://example.com",
+							Title: "Example",
+							Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc:        "ERR - Create Disabled",
+			inputSchema: parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
+			},
+			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_CREATE not supported for resource type example"),
+		},
+		{
+			desc:         "ERR - Invalid Input",
+			enableCreate: true,
+			inputSchema:  parsedSimpleSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
+			},
+			err: fmt.Errorf("invalid_argument: validate create input: jsonschema: '' does not validate"),
+		},
+		{
+			desc:         "ERR - Create Error",
+			enableCreate: true,
+			inputSchema:  parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
+			},
+			createErr: fmt.Errorf("create error"),
+			err:       fmt.Errorf("internal: create resource: create error"),
+		},
+		{
+			desc:             "ERR - Invalid Output",
+			enableCreate:     true,
+			inputSchema:      parsedSchema,
+			propertiesSchema: parsedSimpleSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type: "example",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
+			},
+			err: fmt.Errorf("internal: validate create output: jsonschema: '' does not validate"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			if tc.propertiesSchema != nil {
+				rd.PropertiesSchema = tc.propertiesSchema
+			}
+
+			if tc.enableCreate {
+				rd.CreateFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					return &OperationResponse{
+						Resource: &Resource{
+							ExternalID:  "example-1",
+							DisplayName: "Example",
+							Type:        "example",
+							Properties: map[string]any{
+								"key":       "value",
+								"other_key": "other_value",
+							},
+							Links: []*Link{
+								{
+									URL:   "http://example.com",
+									Title: "Example",
+									Type:  LinkTypeDocumentation,
+								},
+							},
+						},
+					}, tc.createErr
+				}, tc.inputSchema)
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tc.req))
+			if tc.err != nil {
+				if tc.desc == "ERR - Invalid Output" || tc.desc == "ERR - Invalid Input" {
+					assert.ErrorContains(t, err, tc.err.Error())
+				} else {
+					assert.EqualError(t, err, tc.err.Error())
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
+func TestExecuteResourceOperation_Update(t *testing.T) {
+	parsedSchema := MustParseJSONSchema(GenericEmptySchema)
+	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+
+	testCases := []struct {
+		desc             string
+		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
+		req              *appv1.ExecuteResourceOperationRequest
+		inputSchema      *JSONSchema
+		propertiesSchema *JSONSchema
+		enableUpdate     bool
+		updateErr        error
+		err              error
+	}{
+		{
+			desc:         "OK",
+			enableUpdate: true,
+			inputSchema:  parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
+			},
+			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
+				Resource: &appv1.Resource{
+					Type:        "example",
+					ExternalId:  "example-1",
+					DisplayName: "Example",
+					Properties: mustNewStruct(map[string]any{
+						"key":       "value",
+						"other_key": "other_value",
+					}),
+					Links: []*appv1.Link{
+						{
+							Url:   "http://example.com",
+							Title: "Example",
+							Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc:        "ERR - Update Disabled",
+			inputSchema: parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
+			},
+			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_UPDATE not supported for resource type example"),
+		},
+		{
+			desc:         "ERR - Invalid Input",
+			enableUpdate: true,
+			inputSchema:  parsedSimpleSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
+			},
+			err: fmt.Errorf("invalid_argument: validate update input: jsonschema: '' does not validate"),
+		},
+		{
+			desc:         "ERR - Update Error",
+			enableUpdate: true,
+			inputSchema:  parsedSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
+			},
+			updateErr: fmt.Errorf("update error"),
+			err:       fmt.Errorf("internal: update resource: update error"),
+		},
+		{
+			desc:             "ERR - Invalid Output",
+			enableUpdate:     true,
+			inputSchema:      parsedSchema,
+			propertiesSchema: parsedSimpleSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
+			},
+			err: fmt.Errorf("internal: validate update output: jsonschema: '' does not validate"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			if tc.propertiesSchema != nil {
+				rd.PropertiesSchema = tc.propertiesSchema
+			}
+
+			if tc.enableUpdate {
+				rd.UpdateFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					return &OperationResponse{
+						Resource: &Resource{
+							ExternalID:  "example-1",
+							DisplayName: "Example",
+							Type:        "example",
+							Properties: map[string]any{
+								"key":       "value",
+								"other_key": "other_value",
+							},
+							Links: []*Link{
+								{
+									URL:   "http://example.com",
+									Title: "Example",
+									Type:  LinkTypeDocumentation,
+								},
+							},
+						},
+					}, tc.updateErr
+				}, tc.inputSchema)
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tc.req))
+			if tc.err != nil {
+				if tc.desc == "ERR - Invalid Output" || tc.desc == "ERR - Invalid Input" {
+					assert.ErrorContains(t, err, tc.err.Error())
+				} else {
+					assert.EqualError(t, err, tc.err.Error())
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
+func TestExecuteResourceOperation_Delete(t *testing.T) {
+	testCases := []struct {
+		desc         string
+		want         *connect.Response[appv1.ExecuteResourceOperationResponse]
+		req          *appv1.ExecuteResourceOperationRequest
+		enableDelete bool
+		deleteErr    error
+		err          error
+	}{
+		{
+			desc:         "OK",
+			enableDelete: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
+			},
+			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
+				Resource: &appv1.Resource{
+					Type:        "example",
+					ExternalId:  "example-1",
+					DisplayName: "Example",
+					Properties: mustNewStruct(map[string]any{
+						"key":       "value",
+						"other_key": "other_value",
+					}),
+					Links: []*appv1.Link{
+						{
+							Url:   "http://example.com",
+							Title: "Example",
+							Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc: "ERR - Delete Disabled",
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
+			},
+			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_DELETE not supported for resource type example"),
+		},
+		{
+			desc:         "ERR - Delete Error",
+			enableDelete: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_DELETE,
+			},
+			deleteErr: fmt.Errorf("delete error"),
+			err:       fmt.Errorf("internal: delete resource: delete error"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			if tc.enableDelete {
+				rd.DeleteFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					return &OperationResponse{
+						Resource: &Resource{
+							ExternalID:  "example-1",
+							DisplayName: "Example",
+							Type:        "example",
+							Properties: map[string]any{
+								"key":       "value",
+								"other_key": "other_value",
+							},
+							Links: []*Link{
+								{
+									URL:   "http://example.com",
+									Title: "Example",
+									Type:  LinkTypeDocumentation,
+								},
+							},
+						},
+					}, tc.deleteErr
+				})
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tc.req))
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
+func TestExecuteResourceOperation_Read(t *testing.T) {
+	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+
+	testCases := []struct {
+		desc             string
+		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
+		req              *appv1.ExecuteResourceOperationRequest
+		propertiesSchema *JSONSchema
+		enableRead       bool
+		readErr          error
+		err              error
+	}{
+		{
+			desc:       "OK",
+			enableRead: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
+			},
+			want: connect.NewResponse(&appv1.ExecuteResourceOperationResponse{
+				Resource: &appv1.Resource{
+					Type:        "example",
+					ExternalId:  "example-1",
+					DisplayName: "Example",
+					Properties: mustNewStruct(map[string]any{
+						"key":       "value",
+						"other_key": "other_value",
+					}),
+					Links: []*appv1.Link{
+						{
+							Url:   "http://example.com",
+							Title: "Example",
+							Type:  appv1.LinkType_LINK_TYPE_DOCUMENTATION,
+						},
+					},
+				},
+			}),
+		},
+		{
+			desc: "ERR - Read Disabled",
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
+			},
+			err: fmt.Errorf("invalid_argument: operation RESOURCE_OPERATION_READ not supported for resource type example"),
+		},
+		{
+			desc:       "ERR - Read Error",
+			enableRead: true,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
+			},
+			readErr: fmt.Errorf("read error"),
+			err:     fmt.Errorf("internal: read resource: read error"),
+		},
+		{
+			desc:             "ERR - Invalid Output",
+			enableRead:       true,
+			propertiesSchema: parsedSimpleSchema,
+			req: &appv1.ExecuteResourceOperationRequest{
+				Resource: &appv1.Resource{
+					Type:       "example",
+					ExternalId: "example-1",
+				},
+				Input: mustNewStruct(map[string]any{
+					"key": "value",
+				}),
+				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
+			},
+			err: fmt.Errorf("internal: validate read output: jsonschema: '' does not validate"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			if tc.propertiesSchema != nil {
+				rd.PropertiesSchema = tc.propertiesSchema
+			}
+
+			if tc.enableRead {
+				rd.ReadFn(func(_ context.Context, req *OperationRequest) (*OperationResponse, error) {
+					return &OperationResponse{
+						Resource: &Resource{
+							ExternalID:  "example-1",
+							DisplayName: "Example",
+							Type:        "example",
+							Properties: map[string]any{
+								"key":       "value",
+								"other_key": "other_value",
+							},
+							Links: []*Link{
+								{
+									URL:   "http://example.com",
+									Title: "Example",
+									Type:  LinkTypeDocumentation,
+								},
+							},
+						},
+					}, tc.readErr
+				})
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.ExecuteResourceOperation(context.Background(), connect.NewRequest(tc.req))
+			if tc.err != nil {
+				if tc.desc == "ERR - Invalid Output" {
+					assert.ErrorContains(t, err, tc.err.Error())
+				} else {
+					assert.EqualError(t, err, tc.err.Error())
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
 func TestHealthCheck(t *testing.T) {
 	testCases := []struct {
 		desc           string

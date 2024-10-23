@@ -166,7 +166,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 
 		// Catch any validation errors before returning the resource.
 		if err := op.schema.output.Validate(res.Resource.Properties); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate create output: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate update output: %w", err))
 		}
 
 		resource, err := res.Resource.toProto()
@@ -210,7 +210,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 
 		// Catch any validation errors before returning the resource.
 		if err := op.schema.output.Validate(res.Resource.Properties); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate create output: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("validate read output: %w", err))
 		}
 
 		resource, err := res.Resource.toProto()
@@ -222,7 +222,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			Resource: resource,
 		}), nil
 	default:
-		return nil, fmt.Errorf("unsupported operation %s", req.Msg.Operation.String())
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported operation %s", o.String()))
 	}
 }
 
