@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -68,6 +69,101 @@ func TestDescribe(t *testing.T) {
 			}
 
 			res, err := app.Describe(context.Background(), connect.NewRequest(&appv1.DescribeRequest{}))
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, res)
+		})
+	}
+}
+
+func TestHealthCheck(t *testing.T) {
+	testCases := []struct {
+		desc           string
+		status         string
+		healthcheckErr error
+		req            *appv1.HealthCheckRequest
+		want           *connect.Response[appv1.HealthCheckResponse]
+		err            error
+	}{
+		{
+			desc:   "OK - Healthy",
+			status: "healthy",
+			req:    &appv1.HealthCheckRequest{Type: "example"},
+			want: connect.NewResponse(&appv1.HealthCheckResponse{
+				Status: appv1.HealthCheckStatus_HEALTH_CHECK_STATUS_HEALTHY,
+			}),
+		},
+		{
+			desc:   "OK - Disrupted",
+			status: "disrupted",
+			req:    &appv1.HealthCheckRequest{Type: "example"},
+			want: connect.NewResponse(&appv1.HealthCheckResponse{
+				Status: appv1.HealthCheckStatus_HEALTH_CHECK_STATUS_DISRUPTED,
+			}),
+		},
+		{
+			desc:   "OK - Degraded",
+			status: "degraded",
+			req:    &appv1.HealthCheckRequest{Type: "example"},
+			want: connect.NewResponse(&appv1.HealthCheckResponse{
+				Status: appv1.HealthCheckStatus_HEALTH_CHECK_STATUS_DEGRADED,
+			}),
+		},
+		{
+			desc:           "OK - Healthcheck Error - Disrupted",
+			healthcheckErr: fmt.Errorf("not ok"),
+			req:            &appv1.HealthCheckRequest{Type: "example"},
+			want: connect.NewResponse(&appv1.HealthCheckResponse{
+				Status:  appv1.HealthCheckStatus_HEALTH_CHECK_STATUS_DISRUPTED,
+				Message: "not ok",
+			}),
+		},
+		{
+			desc: "ERR - No Type",
+			req:  &appv1.HealthCheckRequest{},
+			err:  fmt.Errorf("invalid_argument: resource type is required"),
+		},
+		{
+			desc: "ERR - Not Found",
+			req:  &appv1.HealthCheckRequest{Type: "not_found"},
+			err:  fmt.Errorf("not_found: resource type not_found not found"),
+		},
+		{
+			desc:   "ERR - Unknown",
+			status: "unknown",
+			req:    &appv1.HealthCheckRequest{Type: "example"},
+			err:    fmt.Errorf("internal: unknown health check status unknown"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rd := generateRD(nil)
+			rd.healthcheck = func(_ context.Context) (*HealthCheckResponse, error) {
+				var status HealthCheckStatus
+				switch tc.status {
+				case "healthy":
+					status = HealthCheckStatusHealthy
+				case "disrupted":
+					status = HealthCheckStatusDisrupted
+				case "degraded":
+					status = HealthCheckStatusDegraded
+				case "unknown":
+					status = HealthCheckStatusUnknown
+				}
+				return &HealthCheckResponse{
+					Status: status,
+				}, tc.healthcheckErr
+			}
+
+			app := &App{
+				resourceDefinitions: []ResourceDefinition{rd},
+			}
+
+			res, err := app.HealthCheck(context.Background(), connect.NewRequest(tc.req))
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
