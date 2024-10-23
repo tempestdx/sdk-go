@@ -58,9 +58,19 @@ func TestGetResourceDefinition(t *testing.T) {
 	}
 }
 
-var simpleOpFn = func(_ context.Context, _ *OperationRequest) (*OperationResponse, error) {
-	return &OperationResponse{}, nil
-}
+var (
+	simpleOpFn = func(_ context.Context, _ *OperationRequest) (*OperationResponse, error) {
+		return &OperationResponse{}, nil
+	}
+
+	simpleHealthcheckFn = func(_ context.Context) (*HealthCheckResponse, error) {
+		return &HealthCheckResponse{}, nil
+	}
+
+	simpleListFn = func(_ context.Context, _ *ListRequest) (*ListResponse, error) {
+		return &ListResponse{}, nil
+	}
+)
 
 func TestCreateFn(t *testing.T) {
 	parsedEmptySchema := MustParseJSONSchema(emptySchema)
@@ -317,10 +327,6 @@ func TestReadFn(t *testing.T) {
 func TestListFn(t *testing.T) {
 	parsedEmptySchema := MustParseJSONSchema(emptySchema)
 
-	listFn := func(_ context.Context, _ *ListRequest) (*ListResponse, error) {
-		return &ListResponse{}, nil
-	}
-
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *ListRequest) (*ListResponse, error)
@@ -329,12 +335,12 @@ func TestListFn(t *testing.T) {
 	}{
 		{
 			desc:       "OK",
-			fn:         listFn,
+			fn:         simpleListFn,
 			properties: parsedEmptySchema,
 		},
 		{
 			desc:        "PANIC - No properties schema",
-			fn:          listFn,
+			fn:          simpleListFn,
 			shouldPanic: true,
 		},
 		{
@@ -377,10 +383,6 @@ func TestListFn(t *testing.T) {
 }
 
 func TestHealthcheckFn(t *testing.T) {
-	healthcheckFn := func(_ context.Context) (*HealthCheckResponse, error) {
-		return &HealthCheckResponse{}, nil
-	}
-
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context) (*HealthCheckResponse, error)
@@ -388,7 +390,7 @@ func TestHealthcheckFn(t *testing.T) {
 	}{
 		{
 			desc: "OK",
-			fn:   healthcheckFn,
+			fn:   simpleHealthcheckFn,
 		},
 
 		{
