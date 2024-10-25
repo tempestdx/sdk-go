@@ -67,14 +67,40 @@ type ActionRequest struct {
 	// Input contains the input data for the request, after it has been validated against the schema.
 	// Default values have already been applied to missing input properties.
 	Input map[string]any
+	// Environment contains the environment variables that are available to the operation.
+	Environment map[string]EnvironmentVariable
 }
 
 func actionRequestFromProto(r *appv1.ExecuteResourceActionRequest) *ActionRequest {
+	environment := make(map[string]EnvironmentVariable, len(r.EnvironmentVariables))
+	for _, v := range r.EnvironmentVariables {
+		var t EnvironmentVariableType
+		switch v.Type {
+		case appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_VAR:
+			t = ENVIRONMENT_VARIABLE_TYPE_VAR
+		case appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_SECRET:
+			t = ENVIRONMENT_VARIABLE_TYPE_SECRET
+		case appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_CERTIFICATE:
+			t = ENVIRONMENT_VARIABLE_TYPE_CERTIFICATE
+		case appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_PRIVATE_KEY:
+			t = ENVIRONMENT_VARIABLE_TYPE_PRIVATE_KEY
+		case appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_PUBLIC_KEY:
+			t = ENVIRONMENT_VARIABLE_TYPE_PUBLIC_KEY
+		}
+
+		environment[v.Key] = EnvironmentVariable{
+			Key:   v.Key,
+			Value: v.Value,
+			Type:  t,
+		}
+	}
+
 	return &ActionRequest{
-		Metadata: metadataFromProto(r.Metadata),
-		Resource: resourceFromProto(r.Resource),
-		Action:   r.Action,
-		Input:    r.Input.AsMap(),
+		Metadata:    metadataFromProto(r.Metadata),
+		Resource:    resourceFromProto(r.Resource),
+		Action:      r.Action,
+		Input:       r.Input.AsMap(),
+		Environment: environment,
 	}
 }
 

@@ -27,6 +27,18 @@ func TestOperationRequestFromProto(t *testing.T) {
 				Input: map[string]any{
 					"key": "value",
 				},
+				Environment: map[string]EnvironmentVariable{
+					"TELEMETRY_ENDPOINT": {
+						Key:   "TELEMETRY_ENDPOINT",
+						Value: "https://telemetry.example.com",
+						Type:  ENVIRONMENT_VARIABLE_TYPE_VAR,
+					},
+					"DB_PASSWORD": {
+						Key:   "DB_PASSWORD",
+						Value: "so-secret",
+						Type:  ENVIRONMENT_VARIABLE_TYPE_SECRET,
+					},
+				},
 			},
 			opReqpb: &appv1.ExecuteResourceOperationRequest{
 				Resource: &appv1.Resource{
@@ -37,6 +49,18 @@ func TestOperationRequestFromProto(t *testing.T) {
 				Metadata:  nil,
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
 				Input:     mustNewStruct(map[string]any{"key": "value"}),
+				EnvironmentVariables: []*appv1.EnvironmentVariable{
+					{
+						Key:   "TELEMETRY_ENDPOINT",
+						Value: "https://telemetry.example.com",
+						Type:  appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_VAR,
+					},
+					{
+						Key:   "DB_PASSWORD",
+						Value: "so-secret",
+						Type:  appv1.EnvironmentVariableType_ENVIRONMENT_VARIABLE_TYPE_SECRET,
+					},
+				},
 			},
 		},
 		{
