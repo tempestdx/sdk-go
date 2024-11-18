@@ -247,3 +247,69 @@ func TestInjectDefaults(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateJSONSchema(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		schema   []byte
+		expected error
+	}{
+		{
+			desc: "Valid schema",
+			schema: []byte(`{
+                "properties": {
+                    "property1": {
+                        "type": "string"
+                    },
+                    "property2": {
+                        "type": "number"
+                    }
+                }
+            }`),
+			expected: nil,
+		},
+		{
+			desc: "Invalid schema - property of type object",
+			schema: []byte(`{
+                "properties": {
+                    "property1": {
+                        "type": "object"
+                    }
+                }
+            }`),
+			expected: errors.New("properties should not be of type 'object'"),
+		},
+		{
+			desc: "Invalid schema - property with $ref",
+			schema: []byte(`{
+                "properties": {
+                    "property1": {
+                        "$ref": "#/definitions/someDefinition"
+                    }
+                }
+            }`),
+			expected: errors.New("properties should not be references"),
+		},
+		{
+			desc: "Invalid schema - properties is not an object",
+			schema: []byte(`{
+                "properties": "not an object"
+            }`),
+			expected: errors.New("properties should be an object"),
+		},
+		{
+			desc: "Valid schema - no properties",
+			schema: []byte(`{
+                "title": "Example Schema"
+            }`),
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			err := validateJSONSchema(tc.schema)
+			assert.Equal(t, tc.expected, err)
+		})
+	}
+}

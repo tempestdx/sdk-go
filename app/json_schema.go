@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/tidwall/gjson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -72,6 +73,12 @@ func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
 		return nil, fmt.Errorf("compile schema: %w", err)
 	}
 
+	// Validate the schema to make sure it aligns with the Tempest product expectations.
+	// This is done after compilation to avoid the need to re-implement the JSONSchema validation logic.
+	if err := validateJSONSchema(schema); err != nil {
+		return nil, fmt.Errorf("validate schema: %w", err)
+	}
+
 	return &JSONSchema{
 		Schema: s,
 		raw:    schema,
@@ -87,4 +94,28 @@ func MustParseJSONSchema(schema []byte) *JSONSchema {
 	}
 
 	return s
+}
+
+// validateJSONSchema validates the JSON schema against the Tempest product expectations.
+func validateJSONSchema(schema []byte) error {
+	properties := gjson.GetBytes(schema, "properties")
+	if properties.Exists() {
+		if properties.IsObject() {
+			for _, p := range properties.Map() {
+				// check that all properties are not "object" type
+				if p.Get("type").String() == "object" {
+					return errors.New("properties should not be of type 'object'")
+				}
+
+				// check that all properties are not references
+				if p.Get("$ref").Exists() {
+					return errors.New("properties should not be references")
+				}
+			}
+		} else {
+			return errors.New("properties should be an object")
+		}
+	}
+
+	return nil
 }
