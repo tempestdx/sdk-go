@@ -8,11 +8,19 @@ import (
 	"fmt"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/tidwall/gjson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 //go:embed schema/generic_empty_schema.json
 var GenericEmptySchema []byte
+
+var (
+	errPropertiesShouldNotBeObject         = errors.New("individual properties should not be of type 'object'")
+	errPropertiesShouldNotBeArrayOfObjects = errors.New("individual properties should not be arrays of objects")
+	errPropertiesShouldNotBeReferences     = errors.New("individual properties should not be references")
+	errPropertiesShouldBeObject            = errors.New("properties should be of type 'object'")
+)
 
 type JSONSchema struct {
 	*jsonschema.Schema
@@ -72,6 +80,12 @@ func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
 		return nil, fmt.Errorf("compile schema: %w", err)
 	}
 
+	// Validate the schema to make sure it aligns with the Tempest product expectations.
+	// This is done after compilation to avoid the need to re-implement the JSONSchema validation logic.
+	if err := validateJSONSchema(schema); err != nil {
+		return nil, fmt.Errorf("validate schema: %w", err)
+	}
+
 	return &JSONSchema{
 		Schema: s,
 		raw:    schema,
@@ -87,4 +101,38 @@ func MustParseJSONSchema(schema []byte) *JSONSchema {
 	}
 
 	return s
+}
+
+// validateJSONSchema validates the JSON schema against the Tempest product expectations.
+// This is a client side check to assist users with an early feedback loop.
+// The server will reject schemas that do not align with the product expectations.
+func validateJSONSchema(schema []byte) error {
+	properties := gjson.GetBytes(schema, "properties")
+	if properties.Exists() {
+		if properties.IsObject() {
+			for _, p := range properties.Map() {
+				// check that all properties are not "object" type
+				if p.Get("type").String() == "object" {
+					return errPropertiesShouldNotBeObject
+				}
+
+				// check that all properties are not arrays of objects
+				if p.Get("type").String() == "array" {
+					items := p.Get("items")
+					if items.Exists() && items.Get("type").String() == "object" {
+						return errPropertiesShouldNotBeArrayOfObjects
+					}
+				}
+
+				// check that all properties are not references
+				if p.Get("$ref").Exists() {
+					return errPropertiesShouldNotBeReferences
+				}
+			}
+		} else {
+			return errPropertiesShouldBeObject
+		}
+	}
+
+	return nil
 }
