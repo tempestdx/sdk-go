@@ -277,7 +277,7 @@ func TestValidateJSONSchema(t *testing.T) {
                     }
                 }
             }`),
-			expected: errors.New("properties should not be of type 'object'"),
+			expected: errPropertiesShouldNotBeObject,
 		},
 		{
 			desc: "Invalid schema - property with $ref",
@@ -288,14 +288,28 @@ func TestValidateJSONSchema(t *testing.T) {
                     }
                 }
             }`),
-			expected: errors.New("properties should not be references"),
+			expected: errPropertiesShouldNotBeReferences,
 		},
 		{
 			desc: "Invalid schema - properties is not an object",
 			schema: []byte(`{
                 "properties": "not an object"
             }`),
-			expected: errors.New("properties should be an object"),
+			expected: errPropertiesShouldBeObject,
+		},
+		{
+			desc: "Invalid schema - property is an array of objects",
+			schema: []byte(`{
+                "properties": {
+                    "property1": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }`),
+			expected: errPropertiesShouldNotBeArrayOfObjects,
 		},
 		{
 			desc: "Valid schema - no properties",

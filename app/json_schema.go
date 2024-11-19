@@ -15,6 +15,13 @@ import (
 //go:embed schema/generic_empty_schema.json
 var GenericEmptySchema []byte
 
+var (
+	errPropertiesShouldNotBeObject         = errors.New("individual properties should not be of type 'object'")
+	errPropertiesShouldNotBeArrayOfObjects = errors.New("individual properties should not be arrays of objects")
+	errPropertiesShouldNotBeReferences     = errors.New("individual properties should not be references")
+	errPropertiesShouldBeObject            = errors.New("properties should be of type 'object'")
+)
+
 type JSONSchema struct {
 	*jsonschema.Schema
 	// Raw holds the unparsed JSON schema.
@@ -97,6 +104,8 @@ func MustParseJSONSchema(schema []byte) *JSONSchema {
 }
 
 // validateJSONSchema validates the JSON schema against the Tempest product expectations.
+// This is a client side check to assist users with an early feedback loop.
+// The server will reject schemas that do not align with the product expectations.
 func validateJSONSchema(schema []byte) error {
 	properties := gjson.GetBytes(schema, "properties")
 	if properties.Exists() {
@@ -104,16 +113,24 @@ func validateJSONSchema(schema []byte) error {
 			for _, p := range properties.Map() {
 				// check that all properties are not "object" type
 				if p.Get("type").String() == "object" {
-					return errors.New("properties should not be of type 'object'")
+					return errPropertiesShouldNotBeObject
+				}
+
+				// check that all properties are not arrays of objects
+				if p.Get("type").String() == "array" {
+					items := p.Get("items")
+					if items.Exists() && items.Get("type").String() == "object" {
+						return errPropertiesShouldNotBeArrayOfObjects
+					}
 				}
 
 				// check that all properties are not references
 				if p.Get("$ref").Exists() {
-					return errors.New("properties should not be references")
+					return errPropertiesShouldNotBeReferences
 				}
 			}
 		} else {
-			return errors.New("properties should be an object")
+			return errPropertiesShouldBeObject
 		}
 	}
 
