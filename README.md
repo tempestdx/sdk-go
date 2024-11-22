@@ -31,7 +31,7 @@ For more information on how to use the Tempest SDK for Go, see our
 
 ## Documentation
 
-For details on all the functionality in this sdk, see our
+For details on all the functionality in this SDK, see our
 [Go documentation][goref].
 
 ## Support
@@ -39,8 +39,8 @@ For details on all the functionality in this sdk, see our
 New features and bug fixes are released on the latest version of the Tempest SDK
 library. If you're using an older major version, we recommend updating to the
 latest version to access new features, benefit from recent bug fixes, and ensure
-you have the latest security patches. Older major versions of the sdk will
-continue to be available for use, but will not be receive any further updates.
+you have the latest security patches. Older major versions of the SDK will
+continue to be available for use, but will not receive any further updates.
 
 ## Development
 
