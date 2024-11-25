@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	connectrpc.com/connect v1.17.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tempestdx/protobuf v0.1.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.27.0
