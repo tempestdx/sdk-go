@@ -358,6 +358,11 @@ func (a *App) HealthCheck(ctx context.Context, req *connect.Request[appv1.Health
 	}
 }
 
+func (a *App) Shutdown(_ context.Context, _ *connect.Request[appv1.ShutdownRequest]) (*connect.Response[appv1.ShutdownResponse], error) {
+	a.done <- struct{}{}
+	return connect.NewResponse(&appv1.ShutdownResponse{}), nil
+}
+
 func operationForType(rd *ResourceDefinition, op appv1.ResourceOperation) *operation {
 	switch op {
 	case appv1.ResourceOperation_RESOURCE_OPERATION_CREATE:
