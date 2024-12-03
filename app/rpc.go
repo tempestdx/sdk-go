@@ -163,7 +163,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("validate update input: %w", err))
 		}
 
-		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
+		res, err := op.fn(ctx, opReq)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update resource: %w", err))
 		}
@@ -191,7 +191,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for delete operation"))
 		}
 
-		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
+		res, err := op.fn(ctx, opReq)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete resource: %w", err))
 		}
@@ -215,7 +215,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("external ID is required for read operation"))
 		}
 
-		res, err := op.fn(ctx, operationRequestFromProto(req.Msg))
+		res, err := op.fn(ctx, opReq)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read resource: %w", err))
 		}
