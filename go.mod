@@ -8,8 +8,8 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tempestdx/protobuf v0.1.1
 	github.com/tidwall/gjson v1.18.0
-	golang.org/x/tools v0.28.0
-	google.golang.org/protobuf v1.36.1
+	golang.org/x/tools v0.29.0
+	google.golang.org/protobuf v1.36.2
 )
 
 require (
