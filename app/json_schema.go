@@ -73,7 +73,12 @@ func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.UseLoader(loader)
 
-	if err := compiler.AddResource("", bytes.NewReader(schema)); err != nil {
+	unMarshalledSchema, err := jsonschema.UnmarshalJSON(bytes.NewReader(schema))
+	if err != nil {
+		return nil, fmt.Errorf("un marshall schema: %w", err)
+	}
+
+	if err := compiler.AddResource("", unMarshalledSchema); err != nil {
 		return nil, fmt.Errorf("load schema: %w", err)
 	}
 
