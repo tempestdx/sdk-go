@@ -10,7 +10,7 @@ import (
 
 const (
 	appSchemaURL      = "https://developer.tempestdx.com/schema/v1/tempest-app-schema.json"
-	propertySchemaURL = "https://developer.tempestdx.com/schema/v1/tempest-property-schema.json"
+	propertySchemaURL = "https://developer.tempestdx.com/schema/v1/tempest-properties-schema.json"
 )
 
 type TempestSchemaLoader struct {
