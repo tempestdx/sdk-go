@@ -56,7 +56,7 @@ func (j *JSONSchema) injectDefaults(input map[string]any) {
 		}
 
 		// Set default value
-		input[property] = s.Default
+		input[property] = *s.Default
 	}
 }
 

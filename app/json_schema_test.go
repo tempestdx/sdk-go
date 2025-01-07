@@ -55,7 +55,6 @@ func TestParseJSONSchema(t *testing.T) {
 				Schema: &jsonschema.Schema{
 					Properties:           map[string]*jsonschema.Schema{},
 					AdditionalProperties: true,
-					Required:             []string{},
 				},
 				raw: GenericEmptySchema,
 			},
@@ -72,7 +71,7 @@ func TestParseJSONSchema(t *testing.T) {
 		{
 			desc:   "ERR - invalid schema",
 			schema: invalidSchema,
-			err:    errors.New("load schema: jsonschema: invalid json : invalid character '}' looking for beginning of value"),
+			err:    errors.New("un marshall schema: invalid character '}' looking for beginning of value"),
 		},
 	}
 	for _, tc := range testCases {

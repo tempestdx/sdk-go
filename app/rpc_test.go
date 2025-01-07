@@ -213,7 +213,7 @@ func TestExecuteResourceOperation_Create(t *testing.T) {
 				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
 			},
-			err: fmt.Errorf("invalid_argument: validate create input: jsonschema: '' does not validate"),
+			err: fmt.Errorf("invalid_argument: validate create input: jsonschema validation failed"),
 		},
 		{
 			desc:         "ERR - Create Error",
@@ -245,7 +245,7 @@ func TestExecuteResourceOperation_Create(t *testing.T) {
 				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_CREATE,
 			},
-			err: fmt.Errorf("internal: validate create output: jsonschema: '' does not validate"),
+			err: fmt.Errorf("internal: validate create output: jsonschema validation failed"),
 		},
 	}
 	for _, tc := range testCases {
@@ -378,7 +378,7 @@ func TestExecuteResourceOperation_Update(t *testing.T) {
 				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
 			},
-			err: fmt.Errorf("invalid_argument: validate update input: jsonschema: '' does not validate"),
+			err: fmt.Errorf("invalid_argument: validate update input: jsonschema validation failed"),
 		},
 		{
 			desc:         "ERR - Update Error",
@@ -412,7 +412,7 @@ func TestExecuteResourceOperation_Update(t *testing.T) {
 				}),
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_UPDATE,
 			},
-			err: fmt.Errorf("internal: validate update output: jsonschema: '' does not validate"),
+			err: fmt.Errorf("internal: validate update output: jsonschema validation failed"),
 		},
 	}
 	for _, tc := range testCases {
@@ -676,7 +676,7 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 				},
 				Operation: appv1.ResourceOperation_RESOURCE_OPERATION_READ,
 			},
-			err: fmt.Errorf("internal: validate read output: jsonschema: '' does not validate"),
+			err: fmt.Errorf("internal: validate read output: jsonschema validation failed"),
 		},
 	}
 	for _, tc := range testCases {
@@ -857,7 +857,7 @@ func TestListResources(t *testing.T) {
 				},
 				Next: "1",
 			},
-			err: fmt.Errorf("internal: validate resource properties: jsonschema: '' does not validate"),
+			err: fmt.Errorf("internal: validate resource properties: jsonschema validation failed"),
 		},
 		{
 			desc: "ERR - Resource Missing",
