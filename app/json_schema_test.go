@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -44,10 +44,8 @@ func TestParseJSONSchema(t *testing.T) {
 			desc:   "OK - Empty JSON Schema",
 			schema: emptySchema,
 			expected: &JSONSchema{
-				Schema: &jsonschema.Schema{
-					Draft: jsonschema.Draft2020,
-				},
-				raw: []byte(`{}`),
+				Schema: &jsonschema.Schema{},
+				raw:    []byte(`{}`),
 			},
 		},
 		{
@@ -55,7 +53,6 @@ func TestParseJSONSchema(t *testing.T) {
 			schema: GenericEmptySchema,
 			expected: &JSONSchema{
 				Schema: &jsonschema.Schema{
-					Draft:                jsonschema.Draft7,
 					Properties:           map[string]*jsonschema.Schema{},
 					AdditionalProperties: true,
 					Required:             []string{},
@@ -87,7 +84,6 @@ func TestParseJSONSchema(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tc.expected.Schema.Draft, out.Draft)
 			assert.Equal(t, tc.expected.Schema.Properties, out.Properties)
 			assert.Equal(t, tc.expected.AdditionalProperties, out.AdditionalProperties)
 			assert.Equal(t, tc.expected.Required, out.Required)
@@ -176,10 +172,8 @@ func TestJSONSchemaToStruct(t *testing.T) {
 		{
 			desc: "OK - Empty Raw",
 			schema: &JSONSchema{
-				Schema: &jsonschema.Schema{
-					Draft: jsonschema.Draft2020,
-				},
-				raw: nil,
+				Schema: &jsonschema.Schema{},
+				raw:    nil,
 			},
 			spb: &structpb.Struct{
 				Fields: map[string]*structpb.Value{},
@@ -188,10 +182,8 @@ func TestJSONSchemaToStruct(t *testing.T) {
 		{
 			desc: "ERR - Unmarshal",
 			schema: &JSONSchema{
-				Schema: &jsonschema.Schema{
-					Draft: jsonschema.Draft2020,
-				},
-				raw: invalidSchema,
+				Schema: &jsonschema.Schema{},
+				raw:    invalidSchema,
 			},
 			err: errors.New("unmarshal schema: invalid character '}' looking for beginning of value"),
 		},

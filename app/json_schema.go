@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/tidwall/gjson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -67,9 +67,11 @@ func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
 		return nil, errors.New("schema is empty")
 	}
 
-	// The package default compiler does not extract annotations.
+	loader := jsonschema.SchemeURLLoader{
+		"https": NewTempestSchemaLoader(),
+	}
 	compiler := jsonschema.NewCompiler()
-	compiler.ExtractAnnotations = true
+	compiler.UseLoader(loader)
 
 	if err := compiler.AddResource("", bytes.NewReader(schema)); err != nil {
 		return nil, fmt.Errorf("load schema: %w", err)
