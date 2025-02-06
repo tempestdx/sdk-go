@@ -9,7 +9,7 @@ require (
 	github.com/tempestdx/protobuf v0.1.2
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.29.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.5
 )
 
 require (
