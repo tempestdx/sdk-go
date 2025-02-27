@@ -9,10 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appv1 "github.com/tempestdx/protobuf/gen/go/tempestdx/app/v1"
+	"github.com/tempestdx/sdk-go/jsonschema"
 )
 
 func TestDescribe(t *testing.T) {
-	parsedSchemaStruct, err := MustParseJSONSchema(GenericEmptySchema).toStruct()
+	parsedSchemaStruct, err := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema).ToStruct()
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -141,15 +142,15 @@ var simpleSchema = []byte(`{
 }`)
 
 func TestExecuteResourceOperation_Create(t *testing.T) {
-	parsedSchema := MustParseJSONSchema(GenericEmptySchema)
-	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+	parsedSchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
+	parsedSimpleSchema := jsonschema.MustParseSchema(simpleSchema)
 
 	testCases := []struct {
 		desc             string
 		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
 		req              *appv1.ExecuteResourceOperationRequest
-		inputSchema      *JSONSchema
-		propertiesSchema *JSONSchema
+		inputSchema      *jsonschema.Schema
+		propertiesSchema *jsonschema.Schema
 		enableCreate     bool
 		createErr        error
 		err              error
@@ -303,15 +304,15 @@ func TestExecuteResourceOperation_Create(t *testing.T) {
 }
 
 func TestExecuteResourceOperation_Update(t *testing.T) {
-	parsedSchema := MustParseJSONSchema(GenericEmptySchema)
-	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+	parsedSchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
+	parsedSimpleSchema := jsonschema.MustParseSchema(simpleSchema)
 
 	testCases := []struct {
 		desc             string
 		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
 		req              *appv1.ExecuteResourceOperationRequest
-		inputSchema      *JSONSchema
-		propertiesSchema *JSONSchema
+		inputSchema      *jsonschema.Schema
+		propertiesSchema *jsonschema.Schema
 		enableUpdate     bool
 		updateErr        error
 		err              error
@@ -590,13 +591,13 @@ func TestExecuteResourceOperation_Delete(t *testing.T) {
 }
 
 func TestExecuteResourceOperation_Read(t *testing.T) {
-	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+	parsedSimpleSchema := jsonschema.MustParseSchema(simpleSchema)
 
 	testCases := []struct {
 		desc             string
 		want             *connect.Response[appv1.ExecuteResourceOperationResponse]
 		req              *appv1.ExecuteResourceOperationRequest
-		propertiesSchema *JSONSchema
+		propertiesSchema *jsonschema.Schema
 		enableRead       bool
 		readErr          error
 		err              error
@@ -734,14 +735,14 @@ func TestExecuteResourceOperation_Read(t *testing.T) {
 }
 
 func TestListResources(t *testing.T) {
-	parsedSimpleSchema := MustParseJSONSchema(simpleSchema)
+	parsedSimpleSchema := jsonschema.MustParseSchema(simpleSchema)
 
 	testCases := []struct {
 		desc             string
 		numResources     int
 		want             *connect.Response[appv1.ListResourcesResponse]
 		req              *appv1.ListResourcesRequest
-		propertiesSchema *JSONSchema
+		propertiesSchema *jsonschema.Schema
 		enableList       bool
 		listErr          error
 		err              error
@@ -1025,7 +1026,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func generateRD(fns []string) ResourceDefinition {
-	parsedSchema := MustParseJSONSchema(GenericEmptySchema)
+	parsedSchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	rd := ResourceDefinition{
 		Type:             "example",

@@ -1,4 +1,4 @@
-package app
+package jsonschema
 
 import (
 	"errors"
@@ -37,26 +37,26 @@ func TestParseJSONSchema(t *testing.T) {
 	testCases := []struct {
 		desc     string
 		schema   []byte
-		expected *JSONSchema
+		expected *Schema
 		err      error
 	}{
 		{
 			desc:   "OK - Empty JSON Schema",
 			schema: emptySchema,
-			expected: &JSONSchema{
+			expected: &Schema{
 				Schema: &jsonschema.Schema{},
-				raw:    []byte(`{}`),
+				Raw:    []byte(`{}`),
 			},
 		},
 		{
 			desc:   "OK - Generic Empty Schema",
 			schema: GenericEmptySchema,
-			expected: &JSONSchema{
+			expected: &Schema{
 				Schema: &jsonschema.Schema{
 					Properties:           map[string]*jsonschema.Schema{},
 					AdditionalProperties: true,
 				},
-				raw: GenericEmptySchema,
+				Raw: GenericEmptySchema,
 			},
 		},
 		{
@@ -76,7 +76,7 @@ func TestParseJSONSchema(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			out, err := ParseJSONSchema(tc.schema)
+			out, err := ParseSchema(tc.schema)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
@@ -87,7 +87,7 @@ func TestParseJSONSchema(t *testing.T) {
 			assert.Equal(t, tc.expected.AdditionalProperties, out.AdditionalProperties)
 			assert.Equal(t, tc.expected.Required, out.Required)
 
-			assert.Equal(t, tc.expected.raw, out.raw)
+			assert.Equal(t, tc.expected.Raw, out.Raw)
 		})
 	}
 }
@@ -111,12 +111,12 @@ func TestMustParseJSONSchema(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			if tc.shouldPanic {
 				require.Panics(t, func() {
-					MustParseJSONSchema(tc.schema)
+					MustParseSchema(tc.schema)
 				})
 				return
 			}
 
-			assert.NotNil(t, MustParseJSONSchema(tc.schema))
+			assert.NotNil(t, MustParseSchema(tc.schema))
 		})
 	}
 }
@@ -124,20 +124,20 @@ func TestMustParseJSONSchema(t *testing.T) {
 func TestJSONSchemaToStruct(t *testing.T) {
 	testCases := []struct {
 		desc   string
-		schema *JSONSchema
+		schema *Schema
 		spb    *structpb.Struct
 		err    error
 	}{
 		{
 			desc:   "OK - Empty JSON Schema",
-			schema: MustParseJSONSchema(emptySchema),
+			schema: MustParseSchema(emptySchema),
 			spb: &structpb.Struct{
 				Fields: map[string]*structpb.Value{},
 			},
 		},
 		{
 			desc:   "OK - Generic Empty Schema",
-			schema: MustParseJSONSchema(GenericEmptySchema),
+			schema: MustParseSchema(GenericEmptySchema),
 			spb: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"$comment": {Kind: &structpb.Value_StringValue{
@@ -170,9 +170,9 @@ func TestJSONSchemaToStruct(t *testing.T) {
 		},
 		{
 			desc: "OK - Empty Raw",
-			schema: &JSONSchema{
+			schema: &Schema{
 				Schema: &jsonschema.Schema{},
-				raw:    nil,
+				Raw:    nil,
 			},
 			spb: &structpb.Struct{
 				Fields: map[string]*structpb.Value{},
@@ -180,16 +180,16 @@ func TestJSONSchemaToStruct(t *testing.T) {
 		},
 		{
 			desc: "ERR - Unmarshal",
-			schema: &JSONSchema{
+			schema: &Schema{
 				Schema: &jsonschema.Schema{},
-				raw:    invalidSchema,
+				Raw:    invalidSchema,
 			},
 			err: errors.New("unmarshal schema: invalid character '}' looking for beginning of value"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			spb, err := tc.schema.toStruct()
+			spb, err := tc.schema.ToStruct()
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
@@ -231,8 +231,8 @@ func TestInjectDefaults(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			schema := MustParseJSONSchema(schemaWithDefaults)
-			schema.injectDefaults(tc.input)
+			schema := MustParseSchema(schemaWithDefaults)
+			schema.InjectDefaults(tc.input)
 
 			assert.Equal(t, tc.output, tc.input)
 		})
@@ -313,7 +313,7 @@ func TestValidateJSONSchema(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			err := validateJSONSchema(tc.schema)
+			err := validateSchema(tc.schema)
 			assert.Equal(t, tc.expected, err)
 		})
 	}

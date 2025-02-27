@@ -1,4 +1,4 @@
-package app
+package jsonschema
 
 import (
 	"bytes"
@@ -22,19 +22,19 @@ var (
 	errPropertiesShouldBeObject            = errors.New("properties should be of type 'object'")
 )
 
-type JSONSchema struct {
+type Schema struct {
 	*jsonschema.Schema
 	// Raw holds the unparsed JSON schema.
-	raw json.RawMessage
+	Raw json.RawMessage
 }
 
-func (j *JSONSchema) toStruct() (*structpb.Struct, error) {
-	if len(j.raw) == 0 {
+func (j *Schema) ToStruct() (*structpb.Struct, error) {
+	if len(j.Raw) == 0 {
 		return structpb.NewStruct(nil)
 	}
 
 	var m map[string]any
-	err := json.Unmarshal(j.raw, &m)
+	err := json.Unmarshal(j.Raw, &m)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal schema: %w", err)
 	}
@@ -43,7 +43,7 @@ func (j *JSONSchema) toStruct() (*structpb.Struct, error) {
 }
 
 // injectDefaults takes the input map and injects default values from the schema.
-func (j *JSONSchema) injectDefaults(input map[string]any) {
+func (j *Schema) InjectDefaults(input map[string]any) {
 	for property, s := range j.Properties {
 		// No default value, skip
 		if s.Default == nil {
@@ -62,7 +62,7 @@ func (j *JSONSchema) injectDefaults(input map[string]any) {
 
 // ParseJSONSchema parses a JSON schema and returns a JSONSchema object.
 // The schema is compiled with annotations extraction enabled.
-func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
+func ParseSchema(schema []byte) (*Schema, error) {
 	if len(schema) == 0 {
 		return nil, errors.New("schema is empty")
 	}
@@ -89,20 +89,20 @@ func ParseJSONSchema(schema []byte) (*JSONSchema, error) {
 
 	// Validate the schema to make sure it aligns with the Tempest product expectations.
 	// This is done after compilation to avoid the need to re-implement the JSONSchema validation logic.
-	if err := validateJSONSchema(schema); err != nil {
+	if err := validateSchema(schema); err != nil {
 		return nil, fmt.Errorf("validate schema: %w", err)
 	}
 
-	return &JSONSchema{
+	return &Schema{
 		Schema: s,
-		raw:    schema,
+		Raw:    schema,
 	}, nil
 }
 
-// MustParseJSONSchema parses a JSON schema and returns a JSONSchema object.
+// MustParseSchema parses a JSON schema and returns a Schema object.
 // It will panic if the schema cannot be parsed.
-func MustParseJSONSchema(schema []byte) *JSONSchema {
-	s, err := ParseJSONSchema(schema)
+func MustParseSchema(schema []byte) *Schema {
+	s, err := ParseSchema(schema)
 	if err != nil {
 		panic(err)
 	}
@@ -110,10 +110,10 @@ func MustParseJSONSchema(schema []byte) *JSONSchema {
 	return s
 }
 
-// validateJSONSchema validates the JSON schema against the Tempest product expectations.
+// validateSchema validates the JSON schema against the Tempest product expectations.
 // This is a client side check to assist users with an early feedback loop.
 // The server will reject schemas that do not align with the product expectations.
-func validateJSONSchema(schema []byte) error {
+func validateSchema(schema []byte) error {
 	properties := gjson.GetBytes(schema, "properties")
 	if properties.Exists() {
 		if properties.IsObject() {

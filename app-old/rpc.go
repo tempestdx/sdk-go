@@ -31,7 +31,7 @@ func (a *App) Describe(_ context.Context, _ *connect.Request[appv1.DescribeReque
 		}
 
 		if rd.PropertiesSchema != nil {
-			s, err := rd.PropertiesSchema.toStruct()
+			s, err := rd.PropertiesSchema.ToStruct()
 			if err != nil {
 				return nil, fmt.Errorf("convert properties schema to struct: %w", err)
 			}
@@ -41,7 +41,7 @@ func (a *App) Describe(_ context.Context, _ *connect.Request[appv1.DescribeReque
 		if rd.create != nil {
 			r.CreateSupported = true
 
-			s, err := rd.create.schema.input.toStruct()
+			s, err := rd.create.schema.input.ToStruct()
 			if err != nil {
 				return nil, fmt.Errorf("convert create input schema to struct: %w", err)
 			}
@@ -51,7 +51,7 @@ func (a *App) Describe(_ context.Context, _ *connect.Request[appv1.DescribeReque
 		if rd.update != nil {
 			r.UpdateSupported = true
 
-			s, err := rd.update.schema.input.toStruct()
+			s, err := rd.update.schema.input.ToStruct()
 			if err != nil {
 				return nil, fmt.Errorf("convert update input schema to struct: %w", err)
 			}
@@ -78,7 +78,7 @@ func (a *App) Describe(_ context.Context, _ *connect.Request[appv1.DescribeReque
 			}
 
 			if a.InputSchema != nil {
-				s, err := a.InputSchema.toStruct()
+				s, err := a.InputSchema.ToStruct()
 				if err != nil {
 					return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("convert action input schema to struct: %w", err))
 				}
@@ -86,7 +86,7 @@ func (a *App) Describe(_ context.Context, _ *connect.Request[appv1.DescribeReque
 			}
 
 			if a.OutputSchema != nil {
-				s, err := a.OutputSchema.toStruct()
+				s, err := a.OutputSchema.ToStruct()
 				if err != nil {
 					return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("convert action output schema to struct: %w", err))
 				}
@@ -124,7 +124,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 		}
 
 		// Inject default values from the Schema into the input, then validate the input.
-		op.schema.input.injectDefaults(opReq.Input)
+		op.schema.input.InjectDefaults(opReq.Input)
 		if err := op.schema.input.Validate(opReq.Input); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("validate create input: %w", err))
 		}
@@ -158,7 +158,7 @@ func (a *App) ExecuteResourceOperation(ctx context.Context, req *connect.Request
 		}
 
 		// Inject default values from the Schema into the input, then validate the input.
-		op.schema.input.injectDefaults(opReq.Input)
+		op.schema.input.InjectDefaults(opReq.Input)
 		if err := op.schema.input.Validate(opReq.Input); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("validate update input: %w", err))
 		}
@@ -291,7 +291,7 @@ func (a *App) ExecuteResourceAction(ctx context.Context, req *connect.Request[ap
 
 	actionReq := actionRequestFromProto(req.Msg)
 
-	action.InputSchema.injectDefaults(actionReq.Input)
+	action.InputSchema.InjectDefaults(actionReq.Input)
 	if err := action.InputSchema.Validate(actionReq.Input); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("validate action input: %w", err))
 	}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tempestdx/sdk-go/jsonschema"
 )
 
 func TestGetResourceDefinition(t *testing.T) {
@@ -73,13 +74,13 @@ var (
 )
 
 func TestCreateFn(t *testing.T) {
-	parsedEmptySchema := MustParseJSONSchema(emptySchema)
+	parsedEmptySchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *OperationRequest) (*OperationResponse, error)
-		inputSchema *JSONSchema
-		properties  *JSONSchema
+		inputSchema *jsonschema.Schema
+		properties  *jsonschema.Schema
 		shouldPanic bool
 	}{
 		{
@@ -141,13 +142,13 @@ func TestCreateFn(t *testing.T) {
 }
 
 func TestUpdateFn(t *testing.T) {
-	parsedEmptySchema := MustParseJSONSchema(emptySchema)
+	parsedEmptySchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *OperationRequest) (*OperationResponse, error)
-		inputSchema *JSONSchema
-		properties  *JSONSchema
+		inputSchema *jsonschema.Schema
+		properties  *jsonschema.Schema
 		shouldPanic bool
 	}{
 		{
@@ -209,12 +210,12 @@ func TestUpdateFn(t *testing.T) {
 }
 
 func TestDeleteFn(t *testing.T) {
-	parsedEmptySchema := MustParseJSONSchema(emptySchema)
+	parsedEmptySchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *OperationRequest) (*OperationResponse, error)
-		properties  *JSONSchema
+		properties  *jsonschema.Schema
 		shouldPanic bool
 	}{
 		{
@@ -240,7 +241,7 @@ func TestDeleteFn(t *testing.T) {
 				delete: &operation{
 					fn: tc.fn,
 					schema: schema{
-						input:  MustParseJSONSchema(GenericEmptySchema),
+						input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 						output: tc.properties,
 					},
 				},
@@ -267,12 +268,12 @@ func TestDeleteFn(t *testing.T) {
 }
 
 func TestReadFn(t *testing.T) {
-	parsedEmptySchema := MustParseJSONSchema(emptySchema)
+	parsedEmptySchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *OperationRequest) (*OperationResponse, error)
-		properties  *JSONSchema
+		properties  *jsonschema.Schema
 		shouldPanic bool
 	}{
 		{
@@ -298,7 +299,7 @@ func TestReadFn(t *testing.T) {
 				read: &operation{
 					fn: tc.fn,
 					schema: schema{
-						input:  MustParseJSONSchema(GenericEmptySchema),
+						input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 						output: tc.properties,
 					},
 				},
@@ -325,12 +326,12 @@ func TestReadFn(t *testing.T) {
 }
 
 func TestListFn(t *testing.T) {
-	parsedEmptySchema := MustParseJSONSchema(emptySchema)
+	parsedEmptySchema := jsonschema.MustParseSchema(jsonschema.GenericEmptySchema)
 
 	testCases := []struct {
 		desc        string
 		fn          func(context.Context, *ListRequest) (*ListResponse, error)
-		properties  *JSONSchema
+		properties  *jsonschema.Schema
 		shouldPanic bool
 	}{
 		{
@@ -356,7 +357,7 @@ func TestListFn(t *testing.T) {
 				list: &listOperation{
 					fn: tc.fn,
 					schema: schema{
-						input:  MustParseJSONSchema(GenericEmptySchema),
+						input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 						output: tc.properties,
 					},
 				},

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	appv1 "github.com/tempestdx/protobuf/gen/go/tempestdx/app/v1"
+	"github.com/tempestdx/sdk-go/jsonschema"
 )
 
 type EnvironmentVariableType string
@@ -88,8 +89,8 @@ type operation struct {
 
 // schema contains the input and output JSON schemas for an operation.
 type schema struct {
-	input  *JSONSchema
-	output *JSONSchema
+	input  *jsonschema.Schema
+	output *jsonschema.Schema
 }
 
 type OperationFunc func(context.Context, *OperationRequest) (*OperationResponse, error)

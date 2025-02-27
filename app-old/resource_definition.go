@@ -1,5 +1,9 @@
 package app
 
+import (
+	"github.com/tempestdx/sdk-go/jsonschema"
+)
+
 // getResourceDefinition returns the ResourceDefinition with the given type, if it exists.
 func (a *App) getResourceDefinition(t string) (*ResourceDefinition, bool) {
 	for _, rd := range a.resourceDefinitions {
@@ -19,7 +23,7 @@ type ResourceDefinition struct {
 	// A description of the Resource type.
 	Description string
 	// PropertiesSchema is the parsed JSON schema for the Properties.
-	PropertiesSchema *JSONSchema
+	PropertiesSchema *jsonschema.Schema
 	// LifecycleStage represents how the Resource fits in the Developer Journey.
 	LifecycleStage LifecycleStage
 	// Links are links to documentation or other resources that can help users
@@ -53,7 +57,7 @@ type ResourceDefinition struct {
 // Tempest will use the inputSchema to validate the input data before calling the Handler.
 // The Handler should create the resource in the external system and return the resource's ExternalID and properties.
 // See the Create operation in the Printer example for an example implementation.
-func (rd *ResourceDefinition) CreateFn(fn OperationFunc, inputSchema *JSONSchema) {
+func (rd *ResourceDefinition) CreateFn(fn OperationFunc, inputSchema *jsonschema.Schema) {
 	if inputSchema == nil {
 		panic("input schema is nil")
 	}
@@ -80,7 +84,7 @@ func (rd *ResourceDefinition) CreateFn(fn OperationFunc, inputSchema *JSONSchema
 // Tempest will use the inputSchema to validate the input data before calling the Handler.
 // The Handler should update the resource in the external system and return the updated resource's properties.
 // See the Update operation in the Printer example for an example implementation.
-func (rd *ResourceDefinition) UpdateFn(fn OperationFunc, inputSchema *JSONSchema) {
+func (rd *ResourceDefinition) UpdateFn(fn OperationFunc, inputSchema *jsonschema.Schema) {
 	if inputSchema == nil {
 		panic("input schema is nil")
 	}
@@ -117,7 +121,7 @@ func (rd *ResourceDefinition) DeleteFn(fn OperationFunc) {
 
 	rd.delete = &operation{
 		schema: schema{
-			input:  MustParseJSONSchema(GenericEmptySchema),
+			input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 			output: rd.PropertiesSchema,
 		},
 		fn: fn,
@@ -139,7 +143,7 @@ func (rd *ResourceDefinition) ReadFn(fn OperationFunc) {
 
 	rd.read = &operation{
 		schema: schema{
-			input:  MustParseJSONSchema(GenericEmptySchema),
+			input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 			output: rd.PropertiesSchema,
 		},
 		fn: fn,
@@ -162,7 +166,7 @@ func (rd *ResourceDefinition) ListFn(fn ListFunc) {
 
 	rd.list = &listOperation{
 		schema: schema{
-			input:  MustParseJSONSchema(GenericEmptySchema),
+			input:  jsonschema.MustParseSchema(jsonschema.GenericEmptySchema),
 			output: rd.PropertiesSchema,
 		},
 		fn: fn,

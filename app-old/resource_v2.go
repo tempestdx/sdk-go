@@ -1,6 +1,10 @@
 package app
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/tempestdx/sdk-go/jsonschema"
+)
 
 type statefulMetadata struct {
 	version        string
@@ -13,7 +17,7 @@ type statefulMetadata struct {
 type ResourceConfig struct {
 	Name           string
 	LifecycleStage LifecycleStage
-	Properties     *JSONSchema
+	Properties     *jsonschema.Schema
 }
 
 type ResourceOpt func(*resourceV2) error
@@ -23,7 +27,7 @@ type resourceV2 struct {
 	name           string
 	LifecycleStage LifecycleStage
 	Links          []Link
-	Properties     *JSONSchema
+	Properties     *jsonschema.Schema
 
 	instructionsMarkdown string
 	canonicalMap         map[CanonicalOperation]*OperationV2
@@ -69,8 +73,8 @@ type OperationOpt func(*OperationV2) error
 type OperationV2 struct {
 	name string
 
-	input  *JSONSchema
-	output *JSONSchema
+	input  *jsonschema.Schema
+	output *jsonschema.Schema
 
 	pre  OperationFunc
 	fn   OperationFunc
@@ -95,16 +99,17 @@ type CanonicalOperation int
 const (
 	CanonicalOperationInstall CanonicalOperation = iota
 	CanonicalOperationUninstall
+	CanonicalOperationCreate
+	CanonicalOperationRead
+	CanonicalOperationUpdate
+	CanonicalOperationDelete
 	CanonicalOperationUpgrade
 	CanonicalOperationRollback
 	CanonicalOperationDestroy
 	CanonicalOperationConfigure
-	CanonicalOperationRead
 	CanonicalOperationWrite
 	CanonicalOperationList
 	CanonicalOperationGet
-	CanonicalOperationUpdate
-	CanonicalOperationDelete
 	CanonicalOperationTest
 	CanonicalOperationHealthz
 	CanonicalOperationSync
@@ -183,9 +188,25 @@ func On(canonical CanonicalOperation) OperationOpt {
 }
 
 func (r *resourceV2) Install(fn OperationFunc) *resourceV2 {
-	return r.RegisterOperation("install", fn, On(CanonicalOperationInstall))
+	return r.RegisterOperation("_install", fn, On(CanonicalOperationInstall))
 }
 
 func (r *resourceV2) Uninstall(fn OperationFunc) *resourceV2 {
-	return r.RegisterOperation("uninstall", fn, On(CanonicalOperationUninstall))
+	return r.RegisterOperation("_uninstall", fn, On(CanonicalOperationUninstall))
+}
+
+func (r *resourceV2) Create(fn OperationFunc) *resourceV2 {
+	return r.RegisterOperation("_create", fn, On(CanonicalOperationCreate))
+}
+
+func (r *resourceV2) Read(fn OperationFunc) *resourceV2 {
+	return r.RegisterOperation("_read", fn, On(CanonicalOperationRead))
+}
+
+func (r *resourceV2) Update(fn OperationFunc) *resourceV2 {
+	return r.RegisterOperation("_update", fn, On(CanonicalOperationUpdate))
+}
+
+func (r *resourceV2) Delete(fn OperationFunc) *resourceV2 {
+	return r.RegisterOperation("_delete", fn, On(CanonicalOperationDelete))
 }
