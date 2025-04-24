@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.18.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
 	github.com/stretchr/testify v1.10.0
-	github.com/tempestdx/protobuf v0.1.3
+	github.com/tempestdx/protobuf v0.1.4
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.32.0
 	google.golang.org/protobuf v1.36.6
