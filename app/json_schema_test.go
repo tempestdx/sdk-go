@@ -83,7 +83,7 @@ func TestParseJSONSchema(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tc.expected.Schema.Properties, out.Properties)
+			assert.Equal(t, tc.expected.Properties, out.Properties)
 			assert.Equal(t, tc.expected.AdditionalProperties, out.AdditionalProperties)
 			assert.Equal(t, tc.expected.Required, out.Required)
 
