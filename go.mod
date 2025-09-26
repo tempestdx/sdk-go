@@ -3,7 +3,7 @@ module github.com/tempestdx/sdk-go
 go 1.24.0
 
 require (
-	connectrpc.com/connect v1.18.1
+	connectrpc.com/connect v1.19.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tempestdx/protobuf v0.1.4
