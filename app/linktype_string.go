@@ -21,8 +21,9 @@ const _LinkType_name = "unspecifieddocumentationadministrationsupportendpointext
 var _LinkType_index = [...]uint8{0, 11, 24, 38, 45, 53, 61}
 
 func (i LinkType) String() string {
-	if i < 0 || i >= LinkType(len(_LinkType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_LinkType_index)-1 {
 		return "LinkType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _LinkType_name[_LinkType_index[i]:_LinkType_index[i+1]]
+	return _LinkType_name[_LinkType_index[idx]:_LinkType_index[idx+1]]
 }

@@ -19,8 +19,9 @@ const _HealthCheckStatus_name = "unknownhealthydegradeddisrupted"
 var _HealthCheckStatus_index = [...]uint8{0, 7, 14, 22, 31}
 
 func (i HealthCheckStatus) String() string {
-	if i < 0 || i >= HealthCheckStatus(len(_HealthCheckStatus_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_HealthCheckStatus_index)-1 {
 		return "HealthCheckStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _HealthCheckStatus_name[_HealthCheckStatus_index[i]:_HealthCheckStatus_index[i+1]]
+	return _HealthCheckStatus_name[_HealthCheckStatus_index[idx]:_HealthCheckStatus_index[idx+1]]
 }
