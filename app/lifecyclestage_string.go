@@ -23,9 +23,9 @@ const _LifecycleStage_name = "codebuildtestreleasedeployoperatemonitorother"
 var _LifecycleStage_index = [...]uint8{0, 4, 9, 13, 20, 26, 33, 40, 45}
 
 func (i LifecycleStage) String() string {
-	i -= 1
-	if i < 0 || i >= LifecycleStage(len(_LifecycleStage_index)-1) {
-		return "LifecycleStage(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_LifecycleStage_index)-1 {
+		return "LifecycleStage(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _LifecycleStage_name[_LifecycleStage_index[i]:_LifecycleStage_index[i+1]]
+	return _LifecycleStage_name[_LifecycleStage_index[idx]:_LifecycleStage_index[idx+1]]
 }
